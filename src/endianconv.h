@@ -36,6 +36,7 @@
 #include "config.h"
 #include <stdint.h>
 
+// 大小端转换
 void memrev16(void *p);
 void memrev32(void *p);
 void memrev64(void *p);

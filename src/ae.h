@@ -30,12 +30,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// 事件驱动编程库
+
 #ifndef __AE_H__
 #define __AE_H__
 
 #define AE_OK 0
 #define AE_ERR -1
 
+// 事件类型
 #define AE_NONE 0
 #define AE_READABLE 1
 #define AE_WRITABLE 2
@@ -89,8 +92,10 @@ typedef struct aeEventLoop {
     int setsize; /* max number of file descriptors tracked */
     long long timeEventNextId;
     time_t lastTime;     /* Used to detect system clock skew */
+    // 监听文件事件 和 触发文件事件 都是预先分配的
     aeFileEvent *events; /* Registered events */
     aeFiredEvent *fired; /* Fired events */
+    // 无序事件时间链表
     aeTimeEvent *timeEventHead;
     int stop;
     void *apidata; /* This is used for polling API specific data */

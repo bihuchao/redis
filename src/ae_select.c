@@ -35,6 +35,7 @@ typedef struct aeApiState {
     fd_set rfds, wfds;
     /* We need to have a copy of the fd sets as it's not safe to reuse
      * FD sets after select(). */
+    // 下划线开头的是临时的
     fd_set _rfds, _wfds;
 } aeApiState;
 

@@ -120,6 +120,7 @@ void sdsclear(sds s) {
     sh->buf[0] = '\0';
 }
 
+// 扩容
 /* Enlarge the free space at the end of the sds string so that the caller
  * is sure that after calling this function can overwrite up to addlen
  * bytes after the end of the string, plus one more byte for nul term.
@@ -135,6 +136,8 @@ sds sdsMakeRoomFor(sds s, size_t addlen) {
     len = sdslen(s);
     sh = (void*) (s-(sizeof(struct sdshdr)));
     newlen = (len+addlen);
+    // < 1M 两倍扩容
+    // >= 1M 多申请1M内存
     if (newlen < SDS_MAX_PREALLOC)
         newlen *= 2;
     else

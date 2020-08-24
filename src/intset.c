@@ -41,6 +41,7 @@
 #define INTSET_ENC_INT32 (sizeof(int32_t))
 #define INTSET_ENC_INT64 (sizeof(int64_t))
 
+// 通过数据大小判断采用何种编码
 /* Return the required encoding for the provided value. */
 static uint8_t _intsetValueEncoding(int64_t v) {
     if (v < INT32_MIN || v > INT32_MAX)
@@ -51,6 +52,7 @@ static uint8_t _intsetValueEncoding(int64_t v) {
         return INTSET_ENC_INT16;
 }
 
+// 通过encoding得到实际数据
 /* Return the value at pos, given an encoding. */
 static int64_t _intsetGetEncoded(intset *is, int pos, uint8_t enc) {
     int64_t v64;
@@ -102,6 +104,7 @@ intset *intsetNew(void) {
 }
 
 /* Resize the intset */
+// 除去不用的内存。
 static intset *intsetResize(intset *is, uint32_t len) {
     uint32_t size = len*intrev32ifbe(is->encoding);
     is = zrealloc(is,sizeof(intset)+size);
@@ -164,6 +167,7 @@ static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
     is->encoding = intrev32ifbe(newenc);
     is = intsetResize(is,intrev32ifbe(is->length)+1);
 
+    // 从后往前扩容，因此不需要中间临时数据
     /* Upgrade back-to-front so we don't overwrite values.
      * Note that the "prepend" variable is used to make sure we have an empty
      * space at either the beginning or the end of the intset. */
@@ -206,9 +210,11 @@ intset *intsetAdd(intset *is, int64_t value, uint8_t *success) {
     uint32_t pos;
     if (success) *success = 1;
 
+    // 值太大，需要进行 upgrade，因为值在目前范围外，因此只可能前插 或者 后插
     /* Upgrade encoding if necessary. If we need to upgrade, we know that
      * this value should be either appended (if > 0) or prepended (if < 0),
      * because it lies outside the range of existing values. */
+    // >0 前插 <0 后插
     if (valenc > intrev32ifbe(is->encoding)) {
         /* This always succeeds, so we don't need to curry *success. */
         return intsetUpgradeAndAdd(is,value);

@@ -68,6 +68,7 @@ redisClient *createClient(int fd) {
      * This is useful since all the Redis commands needs to be executed
      * in the context of a client. When commands are executed in other
      * contexts (for instance a Lua script) we need a non connected client. */
+    // 并非所有命令都会在连接client中执行
     if (fd != -1) {
         anetNonBlock(NULL,fd);
         anetEnableTcpNoDelay(NULL,fd);

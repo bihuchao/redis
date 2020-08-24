@@ -28,6 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// 使用的是默认的LT
 
 #include <sys/epoll.h>
 
@@ -123,6 +124,7 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
 
             if (e->events & EPOLLIN) mask |= AE_READABLE;
             if (e->events & EPOLLOUT) mask |= AE_WRITABLE;
+            // 判断两个异常状态
             if (e->events & EPOLLERR) mask |= AE_WRITABLE;
             if (e->events & EPOLLHUP) mask |= AE_WRITABLE;
             eventLoop->fired[j].fd = e->data.fd;

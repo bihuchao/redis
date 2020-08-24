@@ -30,7 +30,10 @@
 #ifndef REDIS_RANDOM_H
 #define REDIS_RANDOM_H
 
+// redis中的随机数产生器
+// 产生一个随机数 int32_t
 int32_t redisLrand48();
+// 设置随机数种子 int32_t
 void redisSrand48(int32_t seedval);
 
 #define REDIS_LRAND48_MAX INT32_MAX

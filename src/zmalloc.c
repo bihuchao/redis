@@ -44,6 +44,8 @@ void zlibc_free(void *ptr) {
 #include "config.h"
 #include "zmalloc.h"
 
+// 如果使用的内存分配器不包含malloc_size
+// 多分配size_t内存用于存储内存块大小
 #ifdef HAVE_MALLOC_SIZE
 #define PREFIX_SIZE (0)
 #else
@@ -88,6 +90,7 @@ void zlibc_free(void *ptr) {
 
 #endif
 
+// 统计内存时进行内存对齐
 #define update_zmalloc_stat_alloc(__n) do { \
     size_t _n = (__n); \
     if (_n&(sizeof(long)-1)) _n += sizeof(long)-(_n&(sizeof(long)-1)); \
@@ -323,6 +326,10 @@ size_t zmalloc_get_rss(void) {
 }
 #endif
 
+// 内存碎片率 >1
+// RSS(Resident Set Size) - 实际使用内存
+// allocated-bytes - 申请内存
+// 参考 https://blog.csdn.net/honglicu123/article/details/53025138
 /* Fragmentation = RSS / allocated-bytes */
 float zmalloc_get_fragmentation_ratio(size_t rss) {
     return (float)rss/zmalloc_used_memory();

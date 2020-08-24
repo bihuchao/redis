@@ -28,6 +28,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// 有序整型数组，为了节省内存，采用了动态upgrade的机制
+// 动态扩缩容
+
 #ifndef __INTSET_H
 #define __INTSET_H
 #include <stdint.h>
@@ -38,13 +41,21 @@ typedef struct intset {
     int8_t contents[];
 } intset;
 
+// 默认 16 b
 intset *intsetNew(void);
+// 二分查找 => 添加 需要判断是否需要upgrade 16 b => 32 b => 64 b
 intset *intsetAdd(intset *is, int64_t value, uint8_t *success);
+// 二分查找 => 删除
 intset *intsetRemove(intset *is, int64_t value, int *success);
+// 二分查找
 uint8_t intsetFind(intset *is, int64_t value);
+// 随机一个
 int64_t intsetRandom(intset *is);
+// 拿指定位置元素
 uint8_t intsetGet(intset *is, uint32_t pos, int64_t *value);
+// size
 uint32_t intsetLen(intset *is);
+// 实际占用内存大小
 size_t intsetBlobLen(intset *is);
 
 #endif // __INTSET_H

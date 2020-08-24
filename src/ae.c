@@ -46,6 +46,7 @@
 
 /* Include the best multiplexing layer supported by this system.
  * The following should be ordered by performances, descending. */
+// 通过include .c文件 来使用不同多路复用API
 #ifdef HAVE_EVPORT
 #include "ae_evport.c"
 #else
@@ -252,6 +253,7 @@ int aeDeleteTimeEvent(aeEventLoop *eventLoop, long long id)
  *    Much better but still insertion or deletion of timers is O(N).
  * 2) Use a skiplist to have this operation as O(1) and insertion as O(log(N)).
  */
+// 依次遍历来获取最近的 Timer
 static aeTimeEvent *aeSearchNearestTimer(aeEventLoop *eventLoop)
 {
     aeTimeEvent *te = eventLoop->timeEventHead;
@@ -323,6 +325,7 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
              * to flag deleted elements in a special way for later
              * deletion (putting references to the nodes to delete into
              * another linked list). */
+            // 通过时间时间回调函数判断是否为周期性时间
             if (retval != AE_NOMORE) {
                 aeAddMillisecondsToNow(retval,&te->when_sec,&te->when_ms);
             } else {
@@ -396,7 +399,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
                 tvp = NULL; /* wait forever */
             }
         }
-
+        // 通过控制多路复用API中的超时参数来执行Timer函数
         numevents = aeApiPoll(eventLoop, tvp);
         for (j = 0; j < numevents; j++) {
             aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
@@ -407,6 +410,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
 	    /* note the fe->mask & mask & ... code: maybe an already processed
              * event removed an element that fired and we still didn't
              * processed, so we check if the event is still valid. */
+            // 执行文件读写事件回调函数
             if (fe->mask & mask & AE_READABLE) {
                 rfired = 1;
                 fe->rfileProc(eventLoop,fd,fe->clientData,mask);
@@ -418,6 +422,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             processed++;
         }
     }
+    // 执行时间事件回调函数
     /* Check time events */
     if (flags & AE_TIME_EVENTS)
         processed += processTimeEvents(eventLoop);
@@ -427,6 +432,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
 
 /* Wait for milliseconds until the given file descriptor becomes
  * writable/readable/exception */
+// 等待某个fd ms时间，基于poll多路复用API
 int aeWait(int fd, int mask, long long milliseconds) {
     struct pollfd pfd;
     int retmask = 0, retval;
@@ -450,6 +456,7 @@ int aeWait(int fd, int mask, long long milliseconds) {
 void aeMain(aeEventLoop *eventLoop) {
     eventLoop->stop = 0;
     while (!eventLoop->stop) {
+        // 执行睡前函数
         if (eventLoop->beforesleep != NULL)
             eventLoop->beforesleep(eventLoop);
         aeProcessEvents(eventLoop, AE_ALL_EVENTS);
