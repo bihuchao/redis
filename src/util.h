@@ -32,14 +32,19 @@
 
 #include "sds.h"
 
+// 字符串匹配函数 1 : match, 0 : not match
 int stringmatchlen(const char *p, int plen, const char *s, int slen, int nocase);
 int stringmatch(const char *p, const char *s, int nocase);
+// 内存字符串(1gb 1mb 1kb)到整数
 long long memtoll(const char *p, int *err);
+// 整型 <=> 字符串
 int ll2string(char *s, size_t len, long long value);
 int string2ll(const char *s, size_t slen, long long *value);
 int string2l(const char *s, size_t slen, long *value);
 int d2string(char *buf, size_t len, double value);
+// 转绝对路径
 sds getAbsolutePath(char *filename);
+// 判断路径是否为basename
 int pathIsBaseName(char *path);
 
 #endif

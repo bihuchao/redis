@@ -1,3 +1,5 @@
+// 编码数据列表 : 可以存储 str / int
+// 每次操作都需要realloc内存
 /* The ziplist is a specially encoded dually linked list that is designed
  * to be very memory efficient. It stores both strings and integer values,
  * where integers are encoded as actual integers instead of a series of
@@ -10,6 +12,7 @@
  *
  * ZIPLIST OVERALL LAYOUT:
  * The general layout of the ziplist is as follows:
+ * 总字节数 / 末尾元素offset / 元素个数 / 元素s / 结束符(1字节255)
  * <zlbytes><zltail><zllen><entry><entry><zlend>
  *
  * <zlbytes> is an unsigned integer to hold the number of bytes that the
@@ -26,6 +29,7 @@
  * end of the list.
  *
  * ZIPLIST ENTRIES:
+ * entry格式 : 元素长度 / 元素encoding
  * Every entry in the ziplist is prefixed by a header that contains two pieces
  * of information. First, the length of the previous entry is stored to be
  * able to traverse the list from back to front. Second, the encoding with an
@@ -142,6 +146,7 @@
 #define ZIPLIST_BYTES(zl)       (*((uint32_t*)(zl)))
 #define ZIPLIST_TAIL_OFFSET(zl) (*((uint32_t*)((zl)+sizeof(uint32_t))))
 #define ZIPLIST_LENGTH(zl)      (*((uint16_t*)((zl)+sizeof(uint32_t)*2)))
+// 总字节数 / 末尾元素偏移量 / 元素个数
 #define ZIPLIST_HEADER_SIZE     (sizeof(uint32_t)*2+sizeof(uint16_t))
 #define ZIPLIST_ENTRY_HEAD(zl)  ((zl)+ZIPLIST_HEADER_SIZE)
 #define ZIPLIST_ENTRY_TAIL(zl)  ((zl)+intrev32ifbe(ZIPLIST_TAIL_OFFSET(zl)))
@@ -315,6 +320,7 @@ static unsigned int zipRawEntryLength(unsigned char *p) {
 
 /* Check if string pointed to by 'entry' can be encoded as an integer.
  * Stores the integer value in 'v' and its encoding in 'encoding'. */
+// 尝试使用int编码
 static int zipTryEncoding(unsigned char *entry, unsigned int entrylen, long long *v, unsigned char *encoding) {
     long long value;
 
@@ -342,6 +348,7 @@ static int zipTryEncoding(unsigned char *entry, unsigned int entrylen, long long
 }
 
 /* Store integer 'value' at 'p', encoded as 'encoding' */
+// int => mem
 static void zipSaveInteger(unsigned char *p, int64_t value, unsigned char encoding) {
     int16_t i16;
     int32_t i32;
@@ -355,6 +362,7 @@ static void zipSaveInteger(unsigned char *p, int64_t value, unsigned char encodi
     } else if (encoding == ZIP_INT_24B) {
         i32 = value<<8;
         memrev32ifbe(&i32);
+        // 小端存储
         memcpy(p,((uint8_t*)&i32)+1,sizeof(i32)-sizeof(uint8_t));
     } else if (encoding == ZIP_INT_32B) {
         i32 = value;
@@ -372,6 +380,7 @@ static void zipSaveInteger(unsigned char *p, int64_t value, unsigned char encodi
 }
 
 /* Read integer encoded as 'encoding' from 'p' */
+// mem => int
 static int64_t zipLoadInteger(unsigned char *p, unsigned char encoding) {
     int16_t i16;
     int32_t i32;
@@ -686,6 +695,7 @@ unsigned char *ziplistIndex(unsigned char *zl, int index) {
     unsigned char *p;
     unsigned int prevlensize, prevlen = 0;
     if (index < 0) {
+        // <0 的话从末尾往前找
         index = (-index)-1;
         p = ZIPLIST_ENTRY_TAIL(zl);
         if (p[0] != ZIP_END) {

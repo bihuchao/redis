@@ -69,6 +69,7 @@ zskiplist *zslCreate(void) {
     zsl = zmalloc(sizeof(*zsl));
     zsl->level = 1;
     zsl->length = 0;
+    // 32 层
     zsl->header = zslCreateNode(ZSKIPLIST_MAXLEVEL,0,NULL);
     for (j = 0; j < ZSKIPLIST_MAXLEVEL; j++) {
         zsl->header->level[j].forward = NULL;
@@ -100,6 +101,7 @@ void zslFree(zskiplist *zsl) {
  * The return value of this function is between 1 and ZSKIPLIST_MAXLEVEL
  * (both inclusive), with a powerlaw-alike distribution where higher
  * levels are less likely to be returned. */
+// 产生随机数根据层间概率判断skiplistnode的level
 int zslRandomLevel(void) {
     int level = 1;
     while ((random()&0xFFFF) < (ZSKIPLIST_P * 0xFFFF))
@@ -217,6 +219,7 @@ static int zslValueLteMax(double value, zrangespec *spec) {
     return spec->maxex ? (value < spec->max) : (value <= spec->max);
 }
 
+// 判断range是否在zsl的范围内
 /* Returns if there is a part of the zset is in range. */
 int zslIsInRange(zskiplist *zsl, zrangespec *range) {
     zskiplistNode *x;
@@ -234,6 +237,7 @@ int zslIsInRange(zskiplist *zsl, zrangespec *range) {
     return 1;
 }
 
+// 查找范围内的第一个元素
 /* Find the first node that is contained in the specified range.
  * Returns NULL when no element is contained in the range. */
 zskiplistNode *zslFirstInRange(zskiplist *zsl, zrangespec *range) {
@@ -260,6 +264,7 @@ zskiplistNode *zslFirstInRange(zskiplist *zsl, zrangespec *range) {
     return x;
 }
 
+// 查找范围内的最后一个元素
 /* Find the last node that is contained in the specified range.
  * Returns NULL when no element is contained in the range. */
 zskiplistNode *zslLastInRange(zskiplist *zsl, zrangespec *range) {

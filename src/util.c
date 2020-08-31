@@ -190,6 +190,7 @@ long long memtoll(const char *p, int *err) {
     u = p;
     if (*u == '-') u++;
     while(*u && isdigit(*u)) u++;
+    // 带b的都是1024
     if (*u == '\0' || !strcasecmp(u,"b")) {
         mul = 1;
     } else if (!strcasecmp(u,"k")) {
@@ -544,6 +545,7 @@ sds getAbsolutePath(char *filename) {
      *
      * For every "../" we find in the filename, we remove it and also remove
      * the last element of the cwd, unless the current cwd is "/". */
+    // 解析 ../ 等token
     while (sdslen(relpath) >= 3 &&
            relpath[0] == '.' && relpath[1] == '.' && relpath[2] == '/')
     {

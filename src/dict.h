@@ -44,6 +44,7 @@
 /* Unused arguments generate annoying warnings... */
 #define DICT_NOTUSED(V) ((void) V)
 
+// 字典item
 typedef struct dictEntry {
     void *key;
     union {
@@ -55,6 +56,7 @@ typedef struct dictEntry {
     struct dictEntry *next;
 } dictEntry;
 
+// 字典元素的 hash/dup/ctor/dtor/cmp 函数
 typedef struct dictType {
     unsigned int (*hashFunction)(const void *key);
     void *(*keyDup)(void *privdata, const void *key);
@@ -66,17 +68,20 @@ typedef struct dictType {
 
 /* This is our hash table structure. Every dictionary has two of this as we
  * implement incremental rehashing, for the old to the new table. */
+// hash table
 typedef struct dictht {
     dictEntry **table;
-    unsigned long size;
-    unsigned long sizemask;
-    unsigned long used;
+    unsigned long size;     // 必须是pow(2, n)
+    unsigned long sizemask; // 是pow(2,n) - 1
+    unsigned long used;     // 已使用
 } dictht;
 
+// dict实现 双hash_table 用于rehash
 typedef struct dict {
     dictType *type;
     void *privdata;
     dictht ht[2];
+    // 为-1表示只使用ht[0], 否则表示处于rehash过程中
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
     int iterators; /* number of iterators currently running */
 } dict;

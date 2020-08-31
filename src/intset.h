@@ -36,9 +36,9 @@
 #include <stdint.h>
 
 typedef struct intset {
-    uint32_t encoding;
-    uint32_t length;
-    int8_t contents[];
+    uint32_t encoding; // 单个元素占用字节数 2 / 4 / 8
+    uint32_t length; // 长度
+    int8_t contents[]; // 元素实际存储
 } intset;
 
 // 默认 16 b

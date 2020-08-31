@@ -323,7 +323,9 @@ typedef long long mstime_t; /* millisecond time type. */
 /* Anti-warning macro... */
 #define REDIS_NOTUSED(V) ((void) V)
 
+// skiplist 最大层数
 #define ZSKIPLIST_MAXLEVEL 32 /* Should be enough for 2^32 elements */
+// skiplist 层间概率
 #define ZSKIPLIST_P 0.25      /* Skiplist P = 1/4 */
 
 /* Append only defines */
@@ -604,7 +606,7 @@ typedef struct zskiplistNode {
     double score;
     struct zskiplistNode *backward;
     struct zskiplistLevel {
-        struct zskiplistNode *forward;
+        struct zskiplistNode *forward; // 不同level中的下一个Node
         unsigned int span;
     } level[];
 } zskiplistNode;

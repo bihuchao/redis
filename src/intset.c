@@ -104,7 +104,7 @@ intset *intsetNew(void) {
 }
 
 /* Resize the intset */
-// 除去不用的内存。
+// 扩缩容。
 static intset *intsetResize(intset *is, uint32_t len) {
     uint32_t size = len*intrev32ifbe(is->encoding);
     is = zrealloc(is,sizeof(intset)+size);
@@ -183,6 +183,7 @@ static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
     return is;
 }
 
+// content整体移动
 static void intsetMoveTail(intset *is, uint32_t from, uint32_t to) {
     void *src, *dst;
     uint32_t bytes = intrev32ifbe(is->length)-from;
@@ -222,6 +223,7 @@ intset *intsetAdd(intset *is, int64_t value, uint8_t *success) {
         /* Abort if the value is already present in the set.
          * This call will populate "pos" with the right position to insert
          * the value when it cannot be found. */
+        // 已经在intset里面了 置success为false
         if (intsetSearch(is,value,&pos)) {
             if (success) *success = 0;
             return is;

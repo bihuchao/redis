@@ -55,6 +55,7 @@
  * Note that even when dict_can_resize is set to 0, not all resizes are
  * prevented: a hash table is still allowed to grow if the ratio between
  * the number of elements and the buckets > dict_force_resize_ratio. */
+// 在AOF和RDB的持久化过程中，设置dict_can_resize为0
 static int dict_can_resize = 1;
 static unsigned int dict_force_resize_ratio = 5;
 
@@ -189,6 +190,7 @@ int _dictInit(dict *d, dictType *type,
 
 /* Resize the table to the minimal size that contains all the elements,
  * but with the invariant of a USED/BUCKETS ratio near to <= 1 */
+// 类似于shrink方法
 int dictResize(dict *d)
 {
     int minimal;
@@ -200,6 +202,7 @@ int dictResize(dict *d)
     return dictExpand(d, minimal);
 }
 
+// 扩展dict
 /* Expand or create the hash table */
 int dictExpand(dict *d, unsigned long size)
 {
@@ -242,6 +245,10 @@ int dictExpand(dict *d, unsigned long size)
  * guaranteed that this function will rehash even a single bucket, since it
  * will visit at max N*10 empty buckets in total, otherwise the amount of
  * work it does would be unbound and the function may block for a long time. */
+// rehash n个bucket中的所有元素
+// incremental rehashing 渐进式rehash
+// 通过 empty_visits 避免执行过长时间
+// 为什么这个函数不判断是否存在安全迭代器
 int dictRehash(dict *d, int n) {
     int empty_visits = n*10; /* Max number of empty buckets to visit. */
     if (!dictIsRehashing(d)) return 0;
@@ -258,6 +265,7 @@ int dictRehash(dict *d, int n) {
         }
         de = d->ht[0].table[d->rehashidx];
         /* Move all the keys in this bucket from the old to the new hash HT */
+        // 移动这个bucket中全部元素到新hashtable中
         while(de) {
             unsigned int h;
 
@@ -295,6 +303,7 @@ long long timeInMilliseconds(void) {
 }
 
 /* Rehash for an amount of time between ms milliseconds and ms+1 milliseconds */
+// rehash ms时间
 int dictRehashMilliseconds(dict *d, int ms) {
     long long start = timeInMilliseconds();
     int rehashes = 0;
@@ -315,6 +324,7 @@ int dictRehashMilliseconds(dict *d, int ms) {
  * dictionary so that the hash table automatically migrates from H1 to H2
  * while it is actively used. */
 static void _dictRehashStep(dict *d) {
+    // 当前不存在安全迭代器时 才可以进行rehash
     if (d->iterators == 0) dictRehash(d,1);
 }
 
@@ -349,6 +359,7 @@ dictEntry *dictAddRaw(dict *d, void *key)
     dictEntry *entry;
     dictht *ht;
 
+    // 进行一步rehash
     if (dictIsRehashing(d)) _dictRehashStep(d);
 
     /* Get the index of the new element, or -1 if
@@ -357,8 +368,10 @@ dictEntry *dictAddRaw(dict *d, void *key)
         return NULL;
 
     /* Allocate the memory and store the new entry */
+    // add 如果正在rehash, 插入新的表中 ht[1]
     ht = dictIsRehashing(d) ? &d->ht[1] : &d->ht[0];
     entry = zmalloc(sizeof(*entry));
+    // 采用 链地址法 解决hash冲突
     entry->next = ht->table[index];
     ht->table[index] = entry;
     ht->used++;
@@ -378,6 +391,7 @@ int dictReplace(dict *d, void *key, void *val)
 
     /* Try to add the element. If the key
      * does not exists dictAdd will suceed. */
+    // 之前key不存在 新增
     if (dictAdd(d, key, val) == DICT_OK)
         return 1;
     /* It already exists, get the entry */
@@ -438,6 +452,8 @@ static int dictGenericDelete(dict *d, const void *key, int nofree)
             prevHe = he;
             he = he->next;
         }
+        // 如果正在rehash 两个 hash table中都要看下
+        // 否则 只看第一个 hash table
         if (!dictIsRehashing(d)) break;
     }
     return DICT_ERR; /* not found */
@@ -502,6 +518,7 @@ dictEntry *dictFind(dict *d, const void *key)
                 return he;
             he = he->next;
         }
+        // 如果没有在rehash ht[1]没必要再找了
         if (!dictIsRehashing(d)) return NULL;
     }
     return NULL;
@@ -520,6 +537,7 @@ void *dictFetchValue(dict *d, const void *key) {
  * the fingerprint again when the iterator is released.
  * If the two fingerprints are different it means that the user of the iterator
  * performed forbidden operations against the dictionary while iterating. */
+// 非安全迭代器 初始化和释放需要判断dict为发生变更
 long long dictFingerprint(dict *d) {
     long long integers[6], hash = 0;
     int j;
@@ -613,6 +631,7 @@ void dictReleaseIterator(dictIterator *iter)
         if (iter->safe)
             iter->d->iterators--;
         else
+            // 非安全迭代器需要保证dict不会变化
             assert(iter->fingerprint == dictFingerprint(iter->d));
     }
     zfree(iter);
@@ -626,6 +645,7 @@ dictEntry *dictGetRandomKey(dict *d)
     unsigned int h;
     int listlen, listele;
 
+    // 先随机找到bucket，再随机找到chain上某个元素
     if (dictSize(d) == 0) return NULL;
     if (dictIsRehashing(d)) _dictRehashStep(d);
     if (dictIsRehashing(d)) {
@@ -635,6 +655,8 @@ dictEntry *dictGetRandomKey(dict *d)
             h = d->rehashidx + (random() % (d->ht[0].size +
                                             d->ht[1].size -
                                             d->rehashidx));
+            // ht[0]的 [0, rehashidx - 1]是没有元素的
+            // 产生 [rehashidx, d->ht[0].size + d->ht[1].size) 范围的随机数
             he = (h >= d->ht[0].size) ? d->ht[1].table[h - d->ht[0].size] :
                                       d->ht[0].table[h];
         } while(he == NULL);
@@ -932,6 +954,9 @@ static int _dictExpandIfNeeded(dict *d)
      * table (global setting) or we should avoid it but the ratio between
      * elements/buckets is over the "safe" threshold, we resize doubling
      * the number of buckets. */
+    // 需要同时满足两个条件就进行expand:
+    // 如果装载因子 > 1
+    // 没有AOF/RDB持久化 或者 装载因子 > 5
     if (d->ht[0].used >= d->ht[0].size &&
         (dict_can_resize ||
          d->ht[0].used/d->ht[0].size > dict_force_resize_ratio))

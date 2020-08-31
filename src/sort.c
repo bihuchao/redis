@@ -35,6 +35,7 @@
 
 zskiplistNode* zslGetElementByRank(zskiplist *zsl, unsigned long rank);
 
+// redisSortOperation的构造函数
 redisSortOperation *createSortOperation(int type, robj *pattern) {
     redisSortOperation *so = zmalloc(sizeof(*so));
     so->type = type;

@@ -40,6 +40,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// 内存布局: 总长度(1) / (keylen / key / valuelen / freelen / value)s
+// 总长度 <= 254 有用; > 254 需要遍历整个数据结构得到length
 /* Memory layout of a zipmap, for the map "foo" => "bar", "hello" => "world":
  *
  * <zmlen><len>"foo"<len><free>"bar"<len>"hello"<len><free>"world"
@@ -48,6 +50,7 @@
  * When the zipmap length is greater than or equal to 254, this value
  * is not used and the zipmap needs to be traversed to find out the length.
  *
+ * keylen / valuelen如果 <253 (1字节) >253(4字节)
  * <len> is the length of the following string (key or value).
  * <len> lengths are encoded in a single value or in a 5 bytes value.
  * If the first byte value (as an unsigned 8 bit value) is between 0 and
@@ -68,6 +71,11 @@
  * The most compact representation of the above two elements hash is actually:
  *
  * "\x02\x03foo\x03\x00bar\x05hello\x05\x00world\xff"
+ * 拆分:
+ * \x02
+ * \x03foo\x03\x00bar
+ * \x05hello\x05\x00world
+ * \xff
  *
  * Note that because keys and values are prefixed length "objects",
  * the lookup will take O(N) where N is the number of elements
@@ -117,12 +125,14 @@ static unsigned int zipmapEncodeLength(unsigned char *p, unsigned int len) {
     if (p == NULL) {
         return ZIPMAP_LEN_BYTES(len);
     } else {
+        // < 254 单字节
         if (len < ZIPMAP_BIGLEN) {
             p[0] = len;
             return 1;
+        // >= 254 五字节
         } else {
             p[0] = ZIPMAP_BIGLEN;
-            memcpy(p+1,&len,sizeof(len));
+            memcpy(p+1,&len,sizeof(len)lss_tagpath_mngr);
             memrev32ifbe(p+1);
             return 1+sizeof(len);
         }
@@ -135,6 +145,7 @@ static unsigned int zipmapEncodeLength(unsigned char *p, unsigned int len) {
  * If NULL is returned, and totlen is not NULL, it is set to the entire
  * size of the zimap, so that the calling function will be able to
  * reallocate the original zipmap to make room for more entries. */
+// O(n)查找
 static unsigned char *zipmapLookupRaw(unsigned char *zm, unsigned char *key, unsigned int klen, unsigned int *totlen) {
     unsigned char *p = zm+1, *k = NULL;
     unsigned int l,llen;

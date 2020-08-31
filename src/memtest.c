@@ -60,6 +60,7 @@ static struct winsize ws;
 size_t progress_printed; /* Printed chars in screen-wide progress bar. */
 size_t progress_full; /* How many chars to write to fill the progress bar. */
 
+// 是刷屏幕输出的
 void memtest_progress_start(char *title, int pass) {
     int j;
 
@@ -75,10 +76,12 @@ void memtest_progress_start(char *title, int pass) {
     fflush(stdout);
 }
 
+// 是刷屏幕输出的
 void memtest_progress_end(void) {
     printf("\x1b[H\x1b[2J");    /* Cursor home, clear screen. */
 }
 
+// 是刷屏幕字母的
 void memtest_progress_step(size_t curr, size_t size, char c) {
     size_t chars = ((unsigned long long)curr*progress_full)/size, j;
 
@@ -90,6 +93,7 @@ void memtest_progress_step(size_t curr, size_t size, char c) {
 /* Test that addressing is fine. Every location is populated with its own
  * address, and finally verified. This test is very fast but may detect
  * ASAP big issues with the memory subsystem. */
+// A测试 测试内存寻址，每个位置存储其位置
 void memtest_addressing(unsigned long *l, size_t bytes) {
     unsigned long words = bytes/sizeof(unsigned long);
     unsigned long j, *p;
@@ -118,6 +122,7 @@ void memtest_addressing(unsigned long *l, size_t bytes) {
  * touch all the pages in the smallest amount of time reducing the
  * effectiveness of caches, and making it hard for the OS to transfer
  * pages on the swap. */
+// R测试
 void memtest_fill_random(unsigned long *l, size_t bytes) {
     unsigned long step = 4096/sizeof(unsigned long);
     unsigned long words = bytes/sizeof(unsigned long)/2;
@@ -269,7 +274,9 @@ void memtest_non_destructive_swap(void *addr, size_t size) {
     }
 }
 
+// 内存MB 测试次数
 void memtest(size_t megabytes, int passes) {
+    // 调节窗口大小
     if (ioctl(1, TIOCGWINSZ, &ws) == -1) {
         ws.ws_col = 80;
         ws.ws_row = 20;
